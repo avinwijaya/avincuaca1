@@ -5,5 +5,5 @@ services:
     plan: free
     region: singapore
     buildCommand: "pip install -r requirements.txt"
-    startCommand: "python app.py"
+    startCommand: "gunicorn -b 0.0.0.0:8000 app:app"
    
