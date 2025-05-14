@@ -4,18 +4,16 @@ import requests
 from bs4 import BeautifulSoup
 import json
 import time
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
+import os
 
 app = Flask(__name__)
 CORS(app)
 
-# Rate limit: max 10 requests per minute per IP
-limiter = Limiter(app, default_limits=["10 per minute"])
+CACHE_DURATION = 1000 
+DATA_DIR = "data"
 
-# Cache dictionary
-cache = {}
-CACHE_DURATION = 320  # seconds (5 minutes)
+# Pastikan folder 'data' ada
+os.makedirs(DATA_DIR, exist_ok=True)
 
 @app.route('/')
 def index():
@@ -23,10 +21,16 @@ def index():
 
 @app.route('/cuaca/<kode_lokasi>')
 def get_bmkg_weather(kode_lokasi):
-    now = time.time()
-    if kode_lokasi in cache and now - cache[kode_lokasi]['timestamp'] < CACHE_DURATION:
-        return jsonify(cache[kode_lokasi]['data'])
+    filepath = os.path.join(DATA_DIR, f"{kode_lokasi}.json")
 
+    # Jika file cache ada dan belum kedaluwarsa
+    if os.path.exists(filepath):
+        with open(filepath, 'r') as f:
+            cached = json.load(f)
+            if time.time() - cached['timestamp'] < CACHE_DURATION:
+                return jsonify(cached['data'])
+
+    # Scrape baru dari BMKG
     url = f"https://www.bmkg.go.id/cuaca/prakiraan-cuaca/{kode_lokasi}"
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/91.0.4472.124 Safari/537.36'
@@ -44,7 +48,14 @@ def get_bmkg_weather(kode_lokasi):
     if nuxt_data_tag:
         try:
             nuxt_json = json.loads(nuxt_data_tag.string)
-            cache[kode_lokasi] = {"data": nuxt_json, "timestamp": now}
+
+            # Simpan ke file
+            with open(filepath, 'w') as f:
+                json.dump({
+                    "timestamp": time.time(),
+                    "data": nuxt_json
+                }, f)
+
             return jsonify(nuxt_json)
         except json.JSONDecodeError:
             return jsonify({"error": "Gagal mem-parsing JSON dari tag __NUXT_DATA__"}), 500
