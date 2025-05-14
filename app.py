@@ -11,11 +11,11 @@ app = Flask(__name__)
 CORS(app)
 
 # Rate limit: max 10 requests per minute per IP
-limiter = Limiter(app, key_func=get_remote_address, default_limits=["10 per minute"])
+limiter = Limiter(app, default_limits=["10 per minute"])
 
 # Cache dictionary
 cache = {}
-CACHE_DURATION = 300  # seconds (5 minutes)
+CACHE_DURATION = 320  # seconds (5 minutes)
 
 @app.route('/')
 def index():
