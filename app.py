@@ -62,6 +62,21 @@ def get_bmkg_weather(kode_lokasi):
     else:
         return jsonify({"error": "Tag <script id='__NUXT_DATA__'> tidak ditemukan"}), 404
 
+
+@app.route('/cache')
+def list_cache():
+    files = os.listdir(DATA_DIR)
+    return jsonify({"cached": files})
+
+@app.route('/cache/<kode>')
+def show_cache(kode):
+    filepath = os.path.join(DATA_DIR, f"{kode}.json")
+    if os.path.exists(filepath):
+        with open(filepath, 'r') as f:
+            return jsonify(json.load(f))
+    else:
+        return jsonify({"error": "Cache not found"}), 404
+
 if __name__ == '__main__':
     import os
     port = int(os.environ.get("PORT", 8000))
